@@ -1,0 +1,121 @@
+\documentclass{minimal}
+\usepackage[paperwidth=14cm, paperheight=21cm, margin=1cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{amsmath}
+\begin{document}
+Variational Dropout\\
+\hrule
+\begin{gather*}
+  x=z_0\rightarrow^{w_1}h_1\rightarrow^{f}z_2\rightarrow^{w_2}h_2\rightarrow\dots\rightarrow z_T=y\\
+  h^{t+1}= w^{t+1}z_t; z_t=f(h_t)\\
+  \xi_{ij}^{t} \sim \mathrm{Ber}(\xi_j^t|p_t); 1-p_t \textrm{ -- dropout rate}\\
+  h_{t_i}=\sum_{j=1}^{} {w^t_{ij}z_j^{t-1}\xi^{t}_{ij}}\\
+  \int_{}^{} {q(\xi|p)\log p(T|X,w,\xi)d\xi} \rightarrow \max_w\\
+  Eh_{ti}=p_t \sum_{j}^{} {w^t_{ij}z^t_{j}}\\
+  Dh_{ti}=p_t(1-p_t)\sum_{j}^{} {(w^{t}_{ij}z_j^t)^2}\\
+  D(\alpha X+\beta Y)=p_t(1-p_t)(\alpha^2+\beta^2)\\
+\end{gather*}
+$h_{ti}$ приближенно нормальное:
+\begin{gather*}
+  h_{ti} \approx N(h_{ti}|\mu_{ti}, \sigma^2_{ti})\\
+  Eh_{ti}=p_t \sum_{j}^{} {w^t_{ij}z^t_{j}}=\mu_{ti}\\
+  Dh_{ti}=p_t(1-p_t)\sum_{j}^{} {(w^{t}_{ij}z_j^t)^2}=\sigma^2_{ti}\\
+  \xi^t_{ti} \sim N(\xi^t_{ij}|p_t, p_t(1-p_t))
+\end{gather*}
+давайте объединять $w^t_{ij}\xi^t_{ij}$ с весами.
+ \begin{gather*}
+   w^t_{ij} \sim N(w^t_{ij}|\mu^t_{ij},(\sigma^t_{ij})^2)\\
+   \mu^t_{ij} = p_tw^t_{ij}\\
+   \sigma^t_{ij} = p_t(1-p_t)(w^t_{ij})^2=\frac{1-p_t}{p_t}(\mu^t_{ij})^2=\alpha_t(\mu^t_{ij})^2\\
+   \hat{w}^t_{ij} \sim N\left(\hat{w}^t_{ij}|\mu^t_{ij},(\sigma^t_{ij})^2\right)=N\left(\hat{w}^t_{ij}|\mu^t_{ij}, \alpha_t(\mu^t_{ij})^2\right)
+\end{gather*}
+Во что превратился наш функционал. У нас становится мат. ожидание по этим весам.
+\begin{gather*}
+  \int_{}^{} {q(\xi|p)\log p(T|X,w,\xi)d\xi} \rightarrow \max_w\\
+  \int_{}^{} {q(w|\mu, \alpha)\log p(T|X,w)dw} \rightarrow \max_\mu; \alpha_t = \frac{1-p_t}{p_t}\\
+\end{gather*}
+$\alpha_t=1$ -- шума много, $\alpha_t=0$ -- шума нет\\
+\begin{gather*}
+  q(w|\mu,\alpha)=\prod_{i,j,t}^{} {N(w^t_{ij}|\mu^t_{ij},\alpha_t(\mu^t_{ij})^2}
+\end{gather*}
+Если мы оптимизируем по $\alpha$, то это бессмысленно, можно сразу ставить ml. Впрыск шума ухудшает loss, поэтому оптимизация приведет к $\alpha=0$\\
+Это по прежнему не объясняет, почему dropout работает. Люди много лет ломали голову над объяснением того, почему dropout работает, пока не пришли байезиане. Max Welling.\\
+Напоминает байес, но нет kl.\\
+Как бы мы действовали?
+\begin{gather*}
+p(T|x,w)p(w)\\
+p(w|X,T)\approx q(w|\phi)=\arg\min_\phi KL\left(q(w|\phi)\|p(w|X,T)\right)=\\
+=\arg\max_\phi\left[\int_{}^{} {q(w|\phi)\log p(T|X,w)dw}-KL\left(q(w|\phi)\|p(w)\right)\right]\\
+q(w|\mu,\alpha)=\prod_{i,j,t}^{} {N(w^t_{ij}|\mu^{t}_{ij};\alpha_t(\mu^{t}_{ij})^2}
+\end{gather*}
+Если гаусс-дропаут ответ --- то какой вопрос?
+А что если удастся ввести априорное на $w$ так, что KL не зависит от $\mu$, только от $\alpha$. Тогда опт. станет эквивалентной оптимизации гаусс-дропаута.\\
+Это существует: лог-юниформ.
+\[
+  p(w) \propto \prod_{i,j,t}^{} {\frac{1}{w^t_{i,j}}}
+\]
+несобственное, но это не плохо. (типичный пример $\lim_{\sigma\rightarrow\infty} {N(x|0,\sigma)=U(R)}$)
+\begin{gather*}
+  \lim_{a,b\rightarrow_0} {G(x|a,b)=p(x)\propto \frac{1}{x}; x>0 \textrm{ -- log-uniform}}\\
+  p(\log x)=U(R)
+\end{gather*}
+\begin{gather*}
+  P\{x\in[3.14,3.15]\}=P\{x\in[1020,1030]\}=\dots
+\end{gather*}
+Если у нас лог-ю, то все эти вероятности одинаковые.
+Отсутствие информации по масштабу, только на число значащих цифр.\\
+Фактически мы ввели штраф на число значащих цифр. Не настраиваем веса слишком точно.
+Как выглядит KL:
+\begin{gather*}
+KL(q(w|\mu,\alpha)\|p(w))=\sum_{}^{} {KL(N(w^{t}_{ij}|\mu^t_{ij}, \alpha_t(\mu^t_{ij})^2)\|\frac{1}{|w^t_{ij}})}+\mathrm{Const}=\\
+\sum_{i,j,t}^{} {\int N(w|\mu,\alpha(\mu)^2)\log N(w|\mu,\alpha(\mu)^2)dw+\int N(w|\mu,\alpha_t(\mu)^2)\log|w|dw}\\
+=\sum_{i,j,t}^{} {-\log\sqrt{2\pi\dots}-\frac{1}{2}\log\alpha-\log|\mu|+\int_{}^{} {N(\varepsilon|0,1)log|\mu+\sqrt{\alpha(\mu)^2}|d\varepsilon}}=\\
+\sum_{i,j,t}^{} {-\log\sqrt{2\pi\dots}-\frac{1}{2}\log\alpha-\log|\mu|+\int_{}^{} {N(\varepsilon|0,1)\log|\mu||1+\sqrt{\alpha_t}\varepsilon|d\varepsilon}}\\
+\sum_{i,j,t} {-\log\sqrt{2\pi e}-\log|\mu|+\log|\mu|+\int_{}^{} {N(\varepsilon|0,1)\log|1+\sqrt{\alpha}\varepsilon}d\varepsilon}\\
+=f(\alpha)
+\end{gather*}
+Вывод: гаусс (и обычный) дропаут --- байесовская процедура с хитрым априорным распределением.
+Группа Гала более коряво и гаусс притянула к байесовым рельсам, но объяснять не буду.
+
+"Вар. Дропаут не Байесовский" --- исправляемо, но неприятно. На следующей неделе будет.
+
+Хорошо. И что? А дальше что делать полезного? Ок, мы делаем б. ансамблирование, понятно, почему улучшается качество.
+
+Можно настраивать $\alpha$. Во. Без KL это было бессмысленно, теперь все круто.
+
+Мы обощаем вариационное приближение. Мы не переобучаемся, тк улучшаем апостериорное. Опт. по $\alpha$ не только возможна, но и необходима --- получим более точное приближение. Об этом тоже было в статье Веллинга. Смотрите, мы показали, что ВД это байес, поэтому можно оптимизировать. Но там нестабильности и т.д., поэтому мы ограничили оптимизацию $\alpha$ от 0 до 1 (иначе все плохо).
+На следующей лекции эта проблема сниматся.
+
+Почему $\alpha$ одна на слой? Давайте на каждый вес. Тогда все еще точнее. Начинается разреживание. Остается очень-очень мало весов. Почти все веса исчезают ($99.9\%$).
+
+Введение избыточных параметров облегчает оптимизацию. За это платим гигантскими сетями. Оказывается, вот один способ устранения этой избыточности.
+
+Бернулли=Гаусс=ВарВывод. Это все работает. Еще достоинство. Хорошо. Как модифицировать? Как только мы получили, что это байес, то теперь все понятно. Н-р, меняем вар. семейство, априорное и т.д. Можно сравнить с бустингом. Сначала были инженеры, потом пришли ученые и сказали, что это такой-то функционал. У него можно менять а-б-в-г-\dots, и получить что-то более крутое, чем было до этого.
+
+Предположим мы решаем \[
+\arg\max_\phi\left[\int_{}^{} {q(w|\phi)\log p(T|X,w)dw}-KL\left(q(w|\phi)\|p(w)\right)\right]\\
+\]
+Проблемы --- с первым слагаемым.
+\begin{gather*}
+  \sum_{k=1}^{n} {\int_{}^{} {N(w|\mu,\alpha)\log p(t_k|x_k,w)dw}}
+\end{gather*}
+минибатчи? ок. а веса? dsvi? неа. нужен сампл из 100000000-мерного распределения. можно проще? да --- локальная репараметризация.
+
+Выход зависит не напрямую, а через ашки.
+\begin{gather*}
+h_{ti}|h_{t(i-1)}=\sum_{j=1}^{m} {w^t_{ij}z^{t-1}_{j}}\\
+h_{ti}|h_{t(i-1)} \sim N(h_{ti}|\sum_{j=1}^{m} {\mu^t_{ij}z^{t-1}_{j}, \alpha_t \sum_{j=1}^{m} {\mu^t_{ij}z^{t-1}_{j}}}
+\end{gather*}
+\begin{gather*}
+  \sum_{k=1}^{n} {\int_{}^{} {N(w|\mu,\alpha)\log p(t_k|x_k,w)dw}}=
+  \sum_{k=1}^{n} {\int_{}^{} {r(h|w,x_k)\log p(t_k|x_k,w)dh}}=\\
+  \left[r(h|w,x_k)=\prod_{t=1}^{T} {r(h_t|h^{t-1},w)}\right]=\\
+  \left[\prod_{t=1}^{n} {\prod_{i=1}^{m} {N\left(h_{ti}\bigg|\sum_{j}^{} {\mu^t_{ij}z_j^{t-1},\alpha_t \sum_{j}^{} {\left(\mu^t_j z^{t-1}_j\right)^2}}\right)}}\right]=\\
+  \sum_{k=1}^{n} {\int_{}^{} {N(\varepsilon| 0, I)\log p\left(t_k|x_k,h(\varepsilon, x_k, \mu, \alpha)\right)dh}}
+\end{gather*}
+LRT. Еще уменьшается дисперсия. С одной стороны --- численная хитрость. С другой -- мы получили более эффективную процедуру. Можно пользоваться тем, что размерность $h$ намного меньше размерности весов.
+
+Зашумление --- новый способ регуляризации. Где еще было? Аугментации. Сам SGD. Показано, что без SGD мы быстро переобучаемся. Аналогия со слепым человеком. Если дисперсия высокая, то мы детали не видим; только широкие холмы, узкие не видим. Интуиция --- это правильно, нам нужно искать широкие холмы. Все такие зашумления нам помогают в этом. Если мы уменьшаем дисперсию стох. градиента, то мы получаем сильное переобучение. Мы этого не хотим, только если мы не байесиане. А если мы
+оптимизируем ELBO, то нам это и нужно --- мы становимся ближе к честному апостериорному.
+\end{document}
