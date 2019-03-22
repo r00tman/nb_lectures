@@ -3,6 +3,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage[russian]{babel}
 \usepackage{amsmath}
+\usepackage{amssymb}
 \begin{document}
 Как делать ансамблирование.
 
@@ -39,7 +40,7 @@
   L=E_{q(\dots)} \log p(y|x, w) \approx \frac{N}{M} \sum_{m=1}^{M} {\log p(y_m|x_m,w)}; w \sim q(w); \textrm{$\frac{N}{M}$ -- скалирование}\\
   \textrm{берем один семпл и используем для всех объектов минибатча}\\
   B=AW\\
-  размерности: MxD, MxD, DxD
+  \textrm{размерности: }MxD, MxD, DxD
 \end{gather*}
 При такой оценке появляется паразитная дисперсия и надо понять, как от нее избавиться. Есть $L_m=\log p(y_m|x_m, w)$. Допустим по индексам они одинаково распределены.  $\hat{L} = \frac{N}{M}\sum_{m=1}^{M} {L_m}$.
 \end{enumerate}
@@ -48,7 +49,7 @@
 \begin{gather*}
   D\hat{L}=\\
   D\left(\frac{N}{M}\sum_{m=1}^{M} {L_m}\right)=\\
-\left(\frac{N}{M}\right)^2\left(\sum_{m}^{} {D(L_m)+\sum_{i<j}^{} {\mathrm{cov}(L_i, L_j)}\right)}=\\
+\left(\frac{N}{M}\right)^2\left(\sum_{m}^{} {D(L_m)+\sum_{i<j}^{} {\mathrm{cov}(L_i, L_j)}}\right)=\\
   \frac{N^2}{M}D(L_M)+\frac{N^2}{M}(M-1)\mathrm{cov}L(L, L)\\
 =O\left(\frac{1}{m}\right)+O(1)
 \end{gather*}
@@ -122,7 +123,7 @@ E_{\varepsilon_i|b}\varepsilon_i=0;~~ p(b,\varepsilon)=p(\varepsilon)p(b|\vareps
   \begin{bmatrix}
     1&a_i\sigma_i\\
     (a_i\sigma_i)^T&\left(a^T\right)^2\sigma^2
-  \end{bmatrix}\\
+  \end{bmatrix}\right)\\
   \begin{bmatrix}
     x\\y
   \end{bmatrix}\sim N\left(
@@ -135,7 +136,6 @@ E_{\varepsilon_i|b}\varepsilon_i=0;~~ p(b,\varepsilon)=p(\varepsilon)p(b|\vareps
   \end{bmatrix}
 \right);~~p(x|y)=N\left(x|
 a+ \frac{S_{xy}(y-b)}{S_{yy}}, S_{xx}-\frac{S_{xy}^2}{S_{yy}}
-\right)
 \right)\\
 \end{gather*}
 \begin{gather*}
@@ -152,14 +152,14 @@ a+ \frac{S_{xy}(y-b)}{S_{yy}}, S_{xx}-\frac{S_{xy}^2}{S_{yy}}
 \begin{gather*}
   \begin{bmatrix}
     \varepsilon\\b
-  \end{bmatrix}\sim N(
+  \end{bmatrix}\sim N\left(
   \begin{bmatrix}
     0\\a^T\mu
   \end{bmatrix};
   \begin{bmatrix}
     1&\sqrt{(a^T)^2\sigma^2}\\
     \sqrt{(a^T)^2\sigma^2}&(a^T)^2\sigma^2
-  \end{bmatrix})\\
+  \end{bmatrix}\right)\\
   \varepsilon|b\sim N\left(\varepsilon\bigg|\frac{b-a^T\mu}{\sqrt{(a^T)^2\sigma^2}}, 0\right)
 \end{gather*}
 \begin{gather*}
