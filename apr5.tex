@@ -1,0 +1,240 @@
+\documentclass{book}
+\usepackage[paperwidth=14cm, paperheight=21cm, margin=1cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools,pgfplots}
+\begin{document}
+неявные вероятностные модели
+\hrule
+в бм известно два направления приближение: монте-карло и вар. вывод.
+
+\begin{tabular}{l|l|l|l}
+  &MCMC&magic&VI\\
+  \hline
+  Bias&No&magic&Large\\
+  Sampling/Ensembling&Inefficient&magic&Efficient\\
+  Density&No&magic&Yes\\
+\end{tabular}
+
+Нельзя ли сделать что-то промежуточное? Ага. (S)IPM (Implicit Probabilistic Model).
+
+Пусть есть DNN, которая принимает нормальный шум и выплевывает что-то со сложным распределением. Объекты генерировать можем, а плотность мы не знаем.
+
+Почему не норм. потоки? Тяжело обучать и не очень гибкие. Слои должны быть такие, что якобиан считается за линейное время.
+
+Здесь же мы снимаем эти ограничения.
+
+Какие недостатки?\\
+\begin{tabular}{l|l|l|l}
+  &MCMC&(S)IPM&VI\\
+  \hline
+  Bias&No&Small&Large\\
+  Sampling/Ensembling&Inefficient&Efficient&Efficient\\
+  Density&No&No&Yes\\
+  Likelihood&Explicit&Likelihood-free&Explicit\\
+\end{tabular}
+
+Самый известный пример --- GAN.
+Как они работают?
+
+\begin{gather*}
+  X=(x_1 \dots x_n)\\
+  \xi \sim \mathcal{N}(\xi \mid 0, I) \rightarrow \mathrm{Generator}_\theta \rightarrow X_\mathrm{syn}\\
+  x_\mathrm{syn},x_i \rightarrow\mathrm{Discriminator}_\eta \rightarrow \mathbb{P}\{x\in \mathrm{real}\}\\
+  D(x)=\mathbb{P}\{x\in \mathrm{real}\}\\
+  \eta = \arg\max_\eta \left(\frac{1}{n}\sum_{i=1}^{n} {\log D(x_i)}+\mathbb{E}_\xi \log \left(1-D_\eta\left(G_\theta(\xi)\right)\right)\right)\\
+  \theta=\arg\max_\theta \left(-\mathbb{E}_\xi \log \left(1-D_\eta\left(G_\theta\left(\xi\right)\right)\right)\right)
+\end{gather*}
+
+Формально так, но лучше обучать чуть-чуть по-другому:
+\begin{gather*}
+  \theta=\arg\max_\theta \left(\mathbb{E}_\xi \log D_\eta\left(G_\theta\left(\eta\right)\right)\right)
+\end{gather*}
+
+Почему? Раньше был единый функционал, сейчас же две разные оптимизационные задачи. Идейно то же самое.
+
+\begin{tikzpicture}
+  \begin{axis}[grid=major, ymin=-3, ymax=3, width=5cm, height=7cm]
+    \addplot[domain=0:1]{-ln(1-x)} ;
+    \addplot[domain=0:1]{ln(x)} ;
+  \end{axis}
+\end{tikzpicture}
+
+Схема крайне неустойчива. Попытки решения минимакса стохастическими методами приводят ко многим проблемам. Первые три года это было проблемой. Теперь менее. Но все равно, это заметно хуже по стабильности, чем вариационные автокодировщики. Это не означает, что они лучше.
+
+Анализ. Пусть у нас есть идеальный дискриминатор:
+\begin{gather*}
+  p_\mathrm{real}(x)~~~~~p_\mathrm{syn}(x)\\
+  D_*(x)=\frac{p_\mathrm{real}(x)}{p_\mathrm{syn}(x)+p_\mathrm{real}(x)}
+\end{gather*}
+
+Посмотрим, какой функционал оптимизуруется. Заметим, что ид. дискр. зависит от генератора.
+
+\begin{gather*}
+  \theta=\arg\min_\theta \left(\frac{1}{n}\sum_{i=1}^{n} {D_*(x_i)}+\mathbb{E}_\xi \log(1-D_*(G(\xi)))\right)\\
+  \approx \arg\min_\theta \int {p_\mathrm{real}(x)\log\frac{p_\mathrm{real}(x)}{p_\mathrm{real}(x)+p_\mathrm{syn}(x)}dx}+\int {p_\mathrm{syn}(x)\log\frac{p_\mathrm{syn}(x)}{p_\mathrm{syn}(x)+p_\mathrm{real}(x)}fx}=\\
+  = \arg\min_\theta \int {p_\mathrm{real}(x)\log\frac{p_\mathrm{real}(x)}{\frac{p_\mathrm{real}(x)+p_\mathrm{syn}(x)}{2}}dx}+\int {p_\mathrm{syn}(x)\log\frac{p_\mathrm{syn}(x)}{\frac{p_\mathrm{real}(x)+p_\mathrm{syn}(x)}{2}}dx}-\log 4=\\
+  \arg\min_\theta\left[\mathrm{KL}(p_\mathrm{real} \| \frac{p_\mathrm{real}+p_\mathrm{syn}}{2})+\mathrm{KL}(\frac{p_\mathrm{real}+p_\mathrm{syn}}{2} \| p_\mathrm{real}) - \log 4\right]=\\
+  =\arg\min_\theta\left[2\mathrm{JS}(p_\mathrm{real}\|p_\mathrm{sym})\right]
+\end{gather*}
+
+Это нанесло больше вреда, чем пользы. Тут неправильно почти все. Начиная с того, что ни доступа к ид. дискр. у нас нет, да выборка конечная.
+
+Далеко не всегда маленькое значение дивергенции означает близость, которая нам нужна. Мы используем самую гибкую конструкцию --- DNN. Если и она не может различить, то все одинаково. То есть мы выучиваем нашу дивергенцию.
+
+Сам аппарат Adversarial Training гораздо более мощный, чем просто GAN. Суть в минимизации лосса дискриминатора. Из-за этого в любой модели, использующей AT, есть минимакс. Это плохо. это неустойчиво.
+
+Основные механизмы:
+\begin{itemize}
+  \item Обучаем генератор по конечной выборке\\
+    Если слишком гибкий дискр., он может тупо переобучиться на конечную выборку. Это довольно печально. Максимум --- мы научим генерировать из исходной выборки. Мы тогда пытаемся загрублять д. Но тогда мы не можем надеятся на идеальность тем более.\\
+  \item Обучаем генератор по генератору\\
+    Отличие? Мы имеем возможность получать бесконечную выборку. На всех операциях объекты будут уникальны. Риск переобучения снижается. Например, пусть генератор --- MCMC. Тогда мы можем обучить что-то быстрее MCMC, другой генератор. Или например, дистилляция/transfer learning\\
+  \item Обучаем генератор по плотности\\
+    У нас есть доступ к ненормированной плотности. Отличие? В предыдущей не предполагалась плотность.
+\end{itemize}
+
+GAN лежат только в первой постановке.
+
+Две наиболее поп. ген. модели: vae, gan.
+
+Нельзя совместить?
+
+Что плохого в GAN? Мы никогда не поощряем генерацию всего. Поэтому mode collapsing. Не тотальный, но штраф довольно слабый.
+
+В VAE же мы хотим генерацию всего:
+\begin{gather*}
+  \log p(X\mid \theta) \geq \mathcal{L}(\phi,\theta)=\\
+  =\sum_{i=1}^{n} {\int {q(z\mid x_i,\phi)\log p(x_i\mid z,\theta)dz}-\mathrm{KL}(q(z|x_i,\phi)\|p(z))} \rightarrow \max_{\theta,\phi}
+\end{gather*}
+Здесь mode collapsing явно не может возникнуть.
+
+
+\begin{tikzpicture}
+  \begin{axis}[grid=major, xlabel=$x$, ylabel=$p$, ymin=0, xmin=-5, xmax=10]
+    \addplot[domain=-5:10,samples=100]{exp(-x^2)+exp(-(x-3)^2/4)/4} ; % preal
+    \addplot[domain=-5:10,samples=100]{exp(-(x-1.4)^2/12)/6} ; % qvae
+  \end{axis}
+  \draw (2, 2) node {$p_\mathrm{real}(x)$} ;
+  \draw (4, 1) node {$q_\mathrm{vae}(x)$} ;
+\end{tikzpicture}
+
+Давайте использовать неявные модели в энкодере.
+
+AAE.
+
+\begin{gather*}
+  q(z)=\int {q(z\mid x,\phi)p(x)dx}\approx p(z)
+\end{gather*}
+
+рисунок про дыры и покрытия в vae
+
+пусть кодировщик --- неявная вер. модель. Будем $z$ из энк. и из априорного подавать дискриминатору, который будет выплевывать вероятность $\mathbb{P}\{z \sim p(z)\}$
+
+Можем делать 3 разные модели:
+\begin{enumerate}
+  \item сам вае
+  \item детерминированный
+  \item с впрыскиванием шума
+\end{enumerate}
+
+Все три модели покрываются AAE.
+
+  %\theta=\arg\max_\theta \sum_{i=1}^{n} {q(z\mid x_i,\phi)\log p(x_i\mid z, \theta)dz}\\
+\begin{gather*}
+  \eta = \arg\max_\eta\left[\int {p(z)\log D_\eta(z)dz}+\frac{1}{n}\sum_{i=1}^{n} {\int {q(z\mid x_i,\phi)\log(1-D(z))dz}}\right]\\
+  \phi=\arg\max_\phi \sum_{i=1}^{n} {\left[\int {q(z\mid x_i,\phi)\log p(x_i\mid z,\theta)dz} + \lambda\int {q(z\mid x_i, \phi)\log D(z)dz}\right]}
+\end{gather*}
+
+Мы отказались от ELBO, теперь есть две части. Надо как-то балансировать: добавили $\lambda$. Это эвристика, но из соображений здравого смысла.
+
+AVB
+
+Итак. Возвращаемся к модели вае
+\begin{gather*}
+  \log p(X\mid \theta) \geq \mathcal{L}(\phi,\theta)=\\
+  =\sum_{i=1}^{n} {\int {q(z\mid x_i,\phi)\log p(x_i\mid z,\theta)dz}-\mathrm{KL}(q(z|x_i,\phi)\|p(z))} \rightarrow \max_{\theta,\phi}\\
+  \mathrm{KL}(q\|p)=\int {q(z|x_i,\phi)\log \frac{q(z|x_i,\phi)}{p(z)}dz}
+\end{gather*}
+
+Допустим, мы обучили дискр, который предсказывает это отношение плотностей. Супер.
+
+\begin{gather*}
+  \mathrm{Class 1}: p(z);~~~ \mathrm{Class 2}: q(z);~~~\\
+  D_*(z)=\frac{p(z)}{p(z)+q(z)}\\
+  \frac{p(z)}{q(z)}=\frac{D_*(z)}{1-D_*(z)}
+\end{gather*}
+
+\begin{gather*}
+  D_\eta(x, z): p(x)p(z) \mathrm{vs.} p(x)q(z\mid x)\\
+  \eta = \arg\max_\eta \sum_{i=1}^{n} {\left(\int {p(z)\log D(x,z)dz}+\int {q(z|x_i,\phi)\log(1-D(x_i,z))dz}\right)}\\
+  \frac{D_\eta(x,z)}{1-D_\eta(x,z)}\approx \frac{p(x)p(z)}{p(x)q(z\mid x)}=\frac{p(z)}{q(z\mid x)}
+\end{gather*}
+
+Получаем AVB
+
+\begin{gather*}
+  \theta=\arg\max_\theta \sum_{i=1}^{n} {\int {q(z|x_i,\phi)\log p(x_i \mid z, \theta)dz}}\\
+  \phi=\arg\max_\phi \sum_{i=1}^{n} {\left[\int {q(z\mid x_i,\phi)\log p(x_i\mid z, \theta)dz}+\int {q(z\mid x_i, \phi)\log \frac{D_\eta(x_i, z)}{1-D_\eta(x_i, z)}dz}\right]}
+\end{gather*}
+
+Это первый случай, когда мы не пытаемся обмануть дискриминатор. По сути, у нас должна быть ELBO, но мы KL посчитали через дискриминатор.
+
+Да, мы рискуем, тк оптимизируем приближение. Проблема не закрыта, модель не идеальна.
+
+Встречаются модели с AT, в которых мы не пытаемся обмануть дискриминатор.
+
+Возникает вопрос. Допустим, что дискр. обучился, а как его оценить? Какими свойствами должно обладать отношение, чтобы знать, что дискр. обучится хорошо.
+
+Есть отличный прием
+
+\begin{tikzpicture}
+  \begin{axis}[grid=major, xlabel=$x$, ylabel=$p$, ymin=0, xmin=-5, xmax=13]
+    \addplot[domain=-5:13,samples=100]{exp(-x^2)} ; % preal
+    \addplot[domain=-5:13,samples=100]{exp(-(x-8)^2/4)/8} ; % qvae
+  \end{axis}
+\end{tikzpicture}
+
+Так отношение плотностей чудовищно плохо оценивается.
+
+\begin{tikzpicture}
+  \begin{axis}[grid=major, xlabel=$x$, ylabel=$p$, ymin=0, xmin=-5, xmax=13]
+    \addplot[domain=-5:13,samples=100]{exp(-x^2)} ; % preal
+    \addplot[domain=-5:13,samples=100]{exp(-x^2/4)/8} ; % qvae
+  \end{axis}
+\end{tikzpicture}
+
+А так супер.
+
+Возникает идея. (опять рисунок с латентным пространством)
+
+Носитель сильно отличается. Можно сделать лучше?
+
+Заметим, что
+
+\begin{gather*}
+  \frac{p(z)}{q(z\mid x,\phi)}=\frac{p(z)}{r(z\mid x, \alpha)}\frac{r(z\mid x, \alpha)}{q(z\mid x, \phi)}
+\end{gather*}
+
+$r$ --- какое-то простое распределение, например, полностью факт. гауссиану. Вторую часть оцениваем DRE (Density Ration Estimation).
+
+Это называется Adaptive Contrast.
+
+\begin{gather*}
+  r(z\mid x, \alpha)=\prod_{j=1}^{d} {\mathcal{N}\left(z^j\mid \mu^j(x,\alpha),\left(\sigma^j(x,\alpha)\right)^2\right)}
+\end{gather*}
+
+Как обучать?
+
+\begin{gather*}
+  \alpha = \arg\min_\alpha \sum_{i=1}^{n} {\Bigg\|}\begin{bmatrix}\mu(x_i,\alpha)\\\log\sigma(x_i,\alpha)\end{bmatrix}-\begin{bmatrix}\hat{\mu}(x_i, \phi)\\\log \hat{\sigma}(x_i,\phi)\end{bmatrix}{\Bigg\|}^2\\
+  \hat{\mu}, \hat{\sigma} \textrm{ --- считаем по выборке из }q(z\mid x_i, \phi)
+\end{gather*}
+
+Если не жалко памяти, можно $r$ и без сетки учить, для каждого объекта.
+
+Вот такая вот модель. Она наиболее близко подошла к объединению vae и gan.
+
+\end{document}
