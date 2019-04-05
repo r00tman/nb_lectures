@@ -1,0 +1,133 @@
+\documentclass{book}
+\usepackage[paperwidth=14cm, paperheight=21cm, margin=1cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools,pgfplots}
+\begin{document}
+f-GAN
+
+Обычный GAN минимизирует JS дивергенцию. Другие расстояния?
+\begin{enumerate}
+    \item Wasserstein\\
+    \item $\mathrm{KL}(p^*(x)\|p_G(x))$, $\mathrm{KL}(p_G(x)\|p^*(x))$\\
+    \item Pearson $\chi^2$: $\int {\frac{(p_g(x)-p^*(x))^2}{p^*(x)}dx}$
+\end{enumerate}
+2
+f-divergence:
+\begin{gather*}
+    D_f(P\|Q)=\int {q(x)f\left(\frac{p(x)}{q(x)}\right)dx}\\
+    f: \mathbb{R}_+ \rightarrow \mathbb{R}, \textrm{выпукл.}, f(1)=0
+\end{gather*}
+
+\begin{gather*}
+    \int {q(x)f\left(\frac{p(x)}{q(x)}\right)dx}\geq f\left(\int {p(x)dx}\right)=0
+\end{gather*}
+
+Не расстояние --- нет неравенства треугольника.
+
+Посмотрим, какие $f$ соответствуют этим дивергенциям.
+\begin{enumerate}
+    \item $\mathrm{KL}(q(x)\|p(x))=D_f(p(x)\|q(x))$ \\
+        $=\int {q(x)\log \frac{q(x)}{p(x)}dx}$, $f(t)=-\log t$\\
+    \item $\mathrm{KL}(p(x)\|q(x))=D_f(p(x)\|q(x))$ \\
+        $=\int {p(x)\log \frac{p(x)}{q(x)}dx}$, $f(t)=t\log t$
+
+    \begin{tikzpicture}
+        \begin{axis}[grid=major,xmin=0,xmax=4,xlabel=$t$,ylabel=$t\log t$]
+            \addplot[domain=0:4,samples=100]{x*ln(x)} ;
+        \end{axis}
+    \end{tikzpicture}\\
+\item \begin{gather*}
+    JS(p(x)\|q(x))=\frac{1}{2}\left(\int {p(x)\log \left(\frac{p(x)}{\frac{p(x)+q(x)}{2}}\right)}+\int {q(x)\log \left(\frac{q(x)}{\frac{p(x)+q(x)}{2}}\right)}\right)=\\
+    =\left[r(x)=\frac{p(x)}{q(x)}\right]=\\
+    =\frac{1}{2}\left[\int {q(x)\left[r(x)\left(\log \frac{r(x)}{r(x)+1}+\log r\right)+\log \left(\frac{1}{r(x)+1}\right)+\log 2\right]}dx\right]=\\
+    f(t)=t\left(\log \frac{t}{t+1} + \log 2\right)+\log\frac{1}{t+1}+\log 2
+\end{gather*}
+\end{enumerate}
+
+Перейдем к обучению самих GAN'ов.
+
+Рассмотрим сопряженные функции:
+\begin{gather*}
+    f^*(t)=\sup_{x\in \mathrm{dom} f} \{tx-f(x)\}
+\end{gather*}
+
+    \begin{tikzpicture}
+        \begin{axis}[grid=major,xmin=0,xmax=4,xlabel=$x$, ymin=0]
+            \addplot[domain=0:4,samples=100]{(x+1)*(x+1)*(x-2)*(x-2)/10} ;
+            \addplot[domain=0:4,samples=100]{3*x};
+            \addplot[domain=0:4,samples=100, dotted]{3*x-7.4};
+        \end{axis}
+        \draw (6, 3) node {$f(x)$} ;
+        \draw (6, 4) node {$tx$} ;
+        \draw (5, 0.55) to (5, 3.8) ;
+        \draw (4.9, 0.55) to (5.1, 0.55) ;
+        \draw (4.9, 3.8) to (5.1, 3.8) ;
+        \draw[dotted] (5, 0.55) to (5, 0) ;
+    \end{tikzpicture}\\
+
+    \begin{gather*}
+    f^*(t)=\sup_{x\in \mathrm{dom} f} \{tx-f(x)\}\\
+    f(u)=\sup_t \{tu-f^*(t)\}=(f^*(t))^*(w)\\
+    \end{gather*}
+    \begin{gather*}
+        D_f(P\|Q)=\int {q(x)f\left(\frac{p(x)}{q(x)}\right)dx}=\\
+        =\int {q(x)\sup_t\left\{t\frac{p(x)}{q(x)}-f^*(t)\right\}dx}=\\
+        =\int {q(x)\left[t^*(x)\frac{p(x)}{q(x)}-f^*(t^*(x))\right]dx}=\\
+        =\sup_{T(x)}\int {q(x)\left[T(x)\frac{p(x)}{q(x)}-f(T(x))\right]dx}\geq\\
+        \geq \sup_{T(x)\in \tau}\int {(p(x)T(x)-q(x)f^*(T(x)))dx}=\\
+        =\sup_{T(x)\in\tau} \mathbb{E}_{p(x)}T(x)-\mathbb{E}_{q(x)}f^*(T(x))
+    \end{gather*}
+
+    \begin{gather*}
+        D_f(P\|Q)=\int {q(x)f\left(\frac{p(x)}{q(x)}\right)dx}\\
+        p(x)=p^*(x),~~ q(x) = p_G(x),~~ T_w(x)
+    \end{gather*}
+
+    \begin{gather*}
+        \min_G\left[\max_w\left(\mathbb{E}_{p^*(x)}T_w(x)-\mathbb{E}_{p_G(x)}f^*(T_w(x))\right)\right]
+    \end{gather*}
+
+    Попробуем для прямого KL:
+    \begin{gather*}
+        \mathrm{KL}(p_G(x)\|p^*(x))=D_f(p^*(x)\|p_G(x))\\
+        f(t)=-\log(t)\\
+        f^*(x)=\sup_t\{tx+\log t\}
+    \end{gather*}
+    \begin{tikzpicture}
+        \begin{axis}[grid=major,xmin=0,xmax=4,xlabel=$t$,ylabel={$tx+\log t,~~ x=-1$}]
+            \addplot[domain=0:4,samples=100]{-x*1+ln(x)} ;
+        \end{axis}
+    \end{tikzpicture}\\
+    При $x<0$ --- $t=-\frac{1}{x}$, $ f^*(x)=-(1+\log(-x))$
+
+    \begin{gather*}
+        L=\mathbb{E}_{p^*}T_w(x)+\mathbb{E}_{p_G}(1+\log(-T_w(x)))\\
+        S_w(x); T_w(x)=-\exp(S_w(x)) \\
+        L=-\mathbb{E}_{p^*} \exp(S_w(x))+\mathbb{E}_{p_G}S_w(x)
+    \end{gather*}
+
+    Теперь для обратного KL:
+    \begin{gather*}
+        f(t)=t\log t\\
+        f^*(x)=\sup_t{tx-t\log t}
+    \end{gather*}
+    \begin{tikzpicture}
+        \begin{axis}[grid=major,xmin=0,xmax=4,xlabel=$t$,ylabel={$tx-t\log t,~~ x=-1$}]
+            \addplot[domain=0:4,samples=100]{-x*1-x*ln(x)} ;
+        \end{axis}
+    \end{tikzpicture}\\
+    \begin{gather*}
+        t=\exp(x-1)\\
+        f^*=\exp\{x-1\}x-\exp\{x-1\}(x-1)=\exp\{x-1\}\\
+        \mathbb{E}_{p^*}T_w(x)-\mathbb{E}_{p_G(x)}\exp(T_w(x)-1)
+    \end{gather*}
+    Здесь фейковые семплы штрафуются намного сильнее.
+
+    Основные минусы такого анализа? Какие предположения были слишком сильными? Мы не оптимизируем $T_w(x)$ до конца; мы опираемся сильно на её оптимальность. Еще мы минимизируем нижнюю оценку по генератору.
+    Это довольно плохо. Это приводит к очень нестабильному обучению и к многим проблемам, которые мы видим на практике.
+
+    Это может быть хороший мат. аппарат, но надо понимать, что он имеет свои ограничения.
+\end{document}
