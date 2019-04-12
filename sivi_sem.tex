@@ -1,0 +1,39 @@
+\documentclass{book}
+\usepackage[paperwidth=14cm, paperheight=21cm, margin=1cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\begin{document}
+VAE
+\begin{gather*}
+  \mathcal{L}=\sum_{n=1}^{N} {\left[\mathbb{E}_{q(z\mid x_n)}\log p(x_n\mid z)-\mathrm{KL}(q(z\mid x_n)\|p(z))\right]} \rightarrow \max_{p(z)}\\
+  p(z)=\\
+  \sum_{n=1}^{N} {\int {q(z\mid x_n)\log \frac{q(z\mid x_n)}{p(z)}dz}} \rightarrow \min_{p(z)}\\
+  K=\sum_{n=1}^{N} {\int {q(z\mid x_n)\log p(z)dz}} \rightarrow \max\\
+  K=N\int\left[\frac{1}{N}\sum_{n=1}^{N} {q(z\mid x_n)}\right]\log p(z)dz \rightarrow \max\\
+  \arg\max_{p(z)}K=\frac{1}{N}\sum_{n=1}^{N} {q(z\mid x_n)}
+\end{gather*}
+Это считать долго. Давайте вместо этого скажем, что это полунеявное распределение.Еще надо понять какого рода этот semi-implicit
+
+Вытаскиваем Йенсеном:
+\begin{gather*}
+  -\mathrm{KL}\left(q(z\mid x_n)\|p(z)\right)=
+  \mathbb{E}_{q(z\mid x_n)}\log \frac{\frac{1}{N}\sum_{n=1}^{N} {q(z\mid x_n)}}{q(z\mid x_n)}\geq\\
+  \mathbb{E}_{q(z\mid x_n)}\frac{1}{N}\sum_{n=1}^{N} {\log q(z\mid x_n)}+H(q(z\mid x_n))
+\end{gather*}
+
+Оценка очень хреновая. Поэтому надо все же искать semi-implicit
+
+\begin{gather*}
+  p(z)=\int {q(z\mid x)p_v(x)dx}
+\end{gather*}
+
+\begin{gather*}
+  -\mathrm{KL}(q(z\mid x_n)\|p(z)) \geq \mathbb{E}_{q(z\mid x_n)} \log \frac{\frac{1}{K}\sum_{n=1}^{K} {q(z\mid x_n)}}{q(z\mid x_n)}
+\end{gather*}
+
+здесь где-то середина семинара. тут я ушел на показ работ по ломоносову
+
+
+\end{document}
