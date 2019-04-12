@@ -1,0 +1,172 @@
+\documentclass{book}
+\usepackage[paperwidth=14cm, paperheight=21cm, margin=1cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\begin{document}
+\begin{enumerate}
+  \item Explicit\\
+    \begin{gather*}
+      p_\phi(w)\\
+      w=g(\phi,\varepsilon), \varepsilon \sim p(\varepsilon)
+    \end{gather*}
+   \begin{enumerate}
+     \item NF -- inefficient param
+     \item Neural ODE -- slow solvers
+     \item too simple
+   \end{enumerate}
+ \item Implicit\\
+   \begin{gather*}
+     w=g(\phi,\varepsilon), \varepsilon \sim p(\varepsilon)
+   \end{gather*}
+   \begin{enumerate}
+     \item GAN-like obj.
+     \item efficient sampling
+     \item biased
+   \end{enumerate}
+   \begin{itemize}
+     \item Adversarial VB~~~ $\log \frac{q(w)}{p(w)} \approx D$
+     \item KIVI (kernel implicit vi) -- костыльно
+     \item Denoising AE
+   \end{itemize}
+  Попробуем скрестить, так чтобы вывод был проще
+ \item Semi-implicit
+   \begin{gather*}
+     p_\phi(w)=\int {p_\phi(w\mid \psi)p_\phi(\psi)d\psi}
+   \end{gather*}
+   \begin{gather*}
+     \mathcal{L}=\mathbb{E}_{q(w)}\log p(y\mid x, w)+\mathbb{E}_{q(w)}\log p(w)-\mathbb{E}_{q(w)}\log q(w)
+   \end{gather*}
+   \begin{gather*}
+     \psi = g_\psi(\phi, \Sigma_\psi)\\
+     w=g_w(\phi, \Sigma_w, \psi)
+   \end{gather*}
+   Проблемы с последними двумя членами в $\mathcal{L}$
+
+   Предполагаем $p_\phi(w\mid \psi)$ --- explicit,  $p_\phi(\psi)$ --- implicit.
+   Можно и наоборот, тогда будет другой метод.
+   В любом случае, $p_\phi(w)$ будет implicit.
+
+   Мы это уже видели в VAE. Там такой декодер.
+   \begin{gather*}
+     p(z), p(x\mid z)\\
+     p(x)=\int {p(x\mid z)p(z)dz}
+   \end{gather*}
+   $p(x)$ получается в итоге неявным.
+
+   \begin{itemize}
+     \item VAE:
+     \begin{gather*}
+       p(z)=N(0,I)\\
+       p(x|z)=N(\mu_\phi(z), \sigma_\phi^2(z))\\
+       p(x) \textrm{ -- implicit (semi)}
+     \end{gather*}
+     \item Gaussian Mixture
+   \end{itemize}
+
+   Не особо уступает implicit моделям, тк можно $p(x|z)$ любой нейронкой задать, а $p(z)$ --- гауссианка. При $\sigma_\phi^2 \rightarrow 0$ получается в чистом виде implicit, но при этом теряем стабильность, тк теряем гладкость.
+\end{enumerate}
+
+Итак, надо разобраться с последними двумя слагаемыми.
+\begin{enumerate}
+  \item HVM:
+    \begin{gather*}
+      q(w) \textrm{ -- SI}\\
+      q(w)=\int {q_\phi(w\mid \psi)q_\phi(\theta)d\psi} \textrm{ (где $q_\phi(w\mid \psi)q_\phi(\theta)$ -- explicit)}\\
+      -\mathbb{E}_{q(w)}\log q(w) \geq ?
+  \end{gather*}
+  \begin{gather*}
+    q(\psi\mid w)=\frac{q(w\mid \psi)q(\psi)}{q(w)}\\
+    -\mathbb{E}_{q(w)}\log q(w) = -\mathbb{E}_{q(w)}\log\frac{q(w\mid \psi)q(\psi)}{q(\psi|w)}\\
+    -\mathbb{E}_{q(w)}\log q(w) = -\mathbb{E}_{q(w,\psi)}\log\frac{q(w\mid \psi)q(\psi)}{q(\psi|w)}=\\
+    -\mathbb{E}_{q(w,\psi)} \log q(w, \psi) + \mathbb{E}_{q(w,\psi)} q(\psi|w)=\\
+    -\mathbb{E}_{q(w,\psi)} \log q(w, \psi) + \mathbb{E}_{q(w)q(\psi\mid w)} q(\psi|w)=\\
+    -\mathbb{E}_{q(w,\psi)} \log q(w, \psi) + \mathbb{E}_{q(w)q(\psi\mid w)} q(\psi|w)\frac{r_\theta(\psi\mid w)}{r_\theta(\psi\mid w)}\geq\\
+    -\mathbb{E}_{q_\phi(w,\psi)} \log q_\phi(w, \psi) + \mathbb{E}_{q_\phi(w,\psi)} \log r_\theta(\psi\mid w)
+  \end{gather*}
+  Можно смотреть как на вложенную процедуру вар. вывода ${r_\theta(\psi\mid w)} \approx q(\psi \mid w)$.
+  По сути запихнули vae в vae, чтобы можно было делать vae, пока мы делаем vae.
+  \begin{gather*}
+    \mathcal{L}\geq \mathcal{L}'_q(\phi, \theta) \rightarrow \max_{\phi, \theta}
+  \end{gather*}
+  \begin{gather*}
+    \mathcal{L}'_q=\mathbb{E}_{q(w)}\log p(y\mid x,w)p(w)-\mathbb{E}_{q(w,\psi)}\log q(w, \psi)+\mathbb{E}_{q(w,\psi)} r_\theta(\psi|w)\\
+    =\mathbb{E}_{q(w)}\log p(y\mid x, w) - \mathbb{E}_{q(w,\psi)}\log \frac{q(w,\psi)}{p(w)r(\psi\mid w)}\\
+    \mathrm{KL}\left(q(w)\|p(w)\right) \leq \mathrm{KL}\left(q(w,\psi)\|p(w)r(\psi\mid w)\right)
+  \end{gather*}
+  Разобрались с первым случаем.
+  Теперь давайте разбираться с тем, что будет, когда $p$ тоже будет полунеявным.
+\item \begin{gather*}
+    q(w) \textrm{ -- explicit} \\
+    p(w) = \int {p(w\mid \zeta)p(\zeta)d\zeta} \textrm{ (где $p(w\mid \zeta)p(\zeta)$ -- explicit)}
+  \end{gather*}
+  \begin{gather*}
+    \log p(w) \geq \mathbb{E}_{r(\zeta\mid w)}\log p(w\mid \zeta)-
+    \mathrm{KL}\left(r(\zeta\mid w)\|p(\zeta)\right)=\\
+    \mathbb{E}_{r_\phi(\zeta \mid w)} \log \frac{p_\theta(w\mid \zeta)p_\theta(\zeta)}{r_\phi(\zeta\mid w)}
+  \end{gather*}
+  \begin{gather*}
+    \mathcal{L}'_p=\mathbb{E}_{q(w)}\log p(y\mid x, w) - \mathbb{E}_{q(w)r(\zeta\mid w)}\log \frac{q(w)r(\zeta\mid w)}{p(w\mid \zeta)p(\zeta)}
+  \end{gather*}
+
+\item \begin{gather*}
+    p(w)=\int {p(w\mid \zeta)p(\zeta)d\zeta}\textrm{ (где $p(w\mid \zeta)$ -- expl., $p(\zeta)$ -- impl.)}\\
+    =\mathbb{E}_{p(\zeta)}p(w\mid\zeta)\\
+    \approx \frac{1}{K}\sum_{k=1}^{K} {p(w\mid \zeta^k)}
+\end{gather*}
+\begin{gather*}
+  \log p(w) \geq ?\\
+  \log p(w) \geq \frac{1}{K}\sum_{k=1}^{K} {p(w\mid \zeta^k)}\\
+  \mathbb{E}_{\zeta^{1\dots K} \sim p(\zeta)} \log \frac{1}{K} \sum_{k=1}^{K} {p(w\mid \zeta^k)}\leq
+  \log\frac{1}{K}\sum_{k=1}^{K} {\mathbb{E}_{\zeta^{k} \sim p(\zeta)} p(w\mid \zeta^k)}=\log p(w)
+\end{gather*}
+\begin{gather*}
+  \left[\mathbb{E}_{q(w)}\log p(w)\geq \mathbb{E}_{\zeta^{1\dots K}}\mathbb{E}_{q(w)}\log \frac{1}{K}\sum_{k=1}^{K} {p(w\mid \zeta^k)}\right]
+\end{gather*}
+
+\item \begin{gather*}
+    q(w)=\int {q(w\mid \zeta)q(\zeta)d\zeta}\textrm{ (где $q(w\mid \zeta)$ -- expl., $q(\zeta)$ -- impl.)}
+  \end{gather*}
+  \begin{gather*}
+    \log q(w) \rightarrow \log \frac{1}{K}\sum_{k=1}^{K} {q(w\mid\psi)}
+  \end{gather*}
+  не работает -- не в ту сторону неравенство.
+  \begin{gather*}
+    \mathbb{E}_{\psi^{0\dots K}}\mathbb{E}_{q(w|\psi^0)} \log \frac{1}{K+1}\sum_{k=0}^{K} {q(w\mid\psi^k)}\\
+    w \sim q(w\mid \psi^0)\\
+    q(w\mid \psi^0) > q(w\mid \psi^k)
+  \end{gather*}
+  Докажем, что такими изменениями превращаем верхнюю оценку в нижнюю.
+  \begin{gather*}
+    -\mathbb{E}_{\psi^{0\dots K}}\mathbb{E}_{q(w|\psi^0)} \log \frac{1}{K+1}\sum_{k=0}^{K} {q(w\mid\psi^k)}=\\
+    -\mathbb{E}_{\psi^{0\dots K}}\mathbb{E}_{q(w|\psi^i)} \log \frac{1}{K+1}\sum_{k=0}^{K} {q(w\mid\psi^k)}
+  \end{gather*}
+
+  Если у нас есть $a~ a~ a~ a~ a~ a~$, то
+  \[
+    a=\frac{a+a+a+\dots+a}{K+1}
+  \]
+  \begin{gather*}
+    -\mathbb{E}_{\psi^{0\dots K}}\mathbb{E}_{q(w|\psi^0)} \log \frac{1}{K+1}\sum_{k=0}^{K} {q(w\mid\psi^k)}=\\
+    -\mathbb{E}_{\psi^{0\dots K}}\mathbb{E}_{q(w|\psi^i)} \log \frac{1}{K+1}\sum_{k=0}^{K} {q(w\mid\psi^k)}=\\
+    -\frac{1}{K+1}\sum_{i=0}^{K} \mathbb{E}_{\psi^{0\dots K}}\mathbb{E}_{q(w|\psi^i)} \log \frac{1}{K+1}\sum_{k=0}^{K} {q(w\mid\psi^k)}=\\
+    -\frac{1}{K+1}\sum_{i=0}^{K} \mathbb{E}_{\psi^{0\dots K}}\mathbb{E}_{q(w|\psi^i)} \log q(w\mid \psi^{0\dots K})=\\
+    -\mathbb{E}_{\psi^{0\dots K}}\mathbb{E}_{q(w|\psi^{0\dots K})} \log q(w\mid \psi^{0\dots K})\\
+  \end{gather*}
+  \begin{gather*}
+    -\mathbb{E}_{q(w)} \log q(w)=\\
+    -\mathbb{E}_{\phi^{0\dots K}}\mathbb{E}_{q(w\mid \psi^{0\dots K})} \log q(w)=\\
+    \mathbb{E}_{\phi^{0\dots K}}\mathbb{E}_{w\mid \psi^{0\dots K}} \log \frac{q(w\mid \psi^{0\dots K)}}{q(w)}\geq 0\\
+    \mathbb{E}_{\psi^{0\dots K}}\mathrm{KL}(q(w\mid \psi^{0\dots \K})\|q(w))\geq 0
+  \end{gather*}
+  \begin{gather*}
+    -\mathbb{E}_{q(w)}\log q(w)\geq -\mathbb{E}_{\psi^{0\dots K}}\mathbb{E}_{w\mid \psi^0}\log \frac{1}{K+1}\sum_{k=0}^{K} {q(w\mid \psi^K)}
+  \end{gather*}
+
+
+
+
+\end{enumerate}
+
+\end{document}
