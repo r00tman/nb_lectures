@@ -1,0 +1,63 @@
+\documentclass{book}
+\usepackage[paperwidth=14cm, paperheight=21cm, margin=1cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{pgfplots,mathtools}
+\usepackage[makeroom]{cancel}
+\begin{document}
+VAE
+
+\begin{gather*}
+    x\in \mathbb{R}^D, z\in \mathbb{R}^d, x=(x_1,\dots,x_n)\\
+    p(x,z\mid \theta)=\prod_{i=1}^{n} {p(x_i,z_i\mid \theta)}=\\
+    =\prod_{i=1}^{n} {p(x_i\mid z_i,\theta)p(z_i)}=\\
+    =\prod_{i=1}^{n} {\mathcal{N}(x_i\mid \mu+\omega z_i,\sigma^2)\mathcal{N}(z_i\mid 0,I)}\\
+    p(X\mid \theta)\rightarrow\max_\theta
+\end{gather*}
+
+\begin{gather*}
+    p(X\mid \theta)=\prod_{i}^{} {p(x_i\mid \theta)}=\prod_i {\int {p(x_i\mid z,\theta)p(z)dz}}
+\end{gather*}
+
+\underline{E-step} $q(z)=p(z\mid x,\theta)=\prod_{}^{} {p(z_i\mid x_i,\theta)}$
+
+\underline{M-step} $\mathbb{E}_{q(z)}\log p(x,z\mid \theta)\rightarrow\max_\theta$ 
+
+~\\\hrule~\\
+
+\underline{E'-step} $j\sim U\{1,\dots,n\}, q(z_i)=p(z_i\mid x_i,\theta)$
+
+\underline{M'-step} $\theta_{t+1}-\theta_t=\varkappa_t(\nabla_\theta\log p(x_j,\hat{z}\mid \theta)),~~~\hat{z}\sim q(z_i)$
+
+~\\\hrule~\\
+
+\begin{gather*}
+    \log p(X\mid \theta)\geq \mathcal{L}(\theta,\phi)=\int {q(z\mid \phi)\log \frac{p(x,z\mid \theta)}{q(z\mid \phi)}dz}=\\
+    =\sum_{i=1}^{n} \Bigg(\int {q(z_i\mid x_i,\phi)\log p(x_i\|z_i,\theta)dz_i}-\\
+    -\int {q(z_i\mid \phi)\log\frac{q(z_i\mid \phi)}{p(z_i)}dz_i}\Bigg)
+\end{gather*}
+
+reparametrization trick
+
+encoder
+
+NF
+
+\begin{gather*}
+    \sum_{}^{} \int {q_T(z_T\mid x_i,\phi)\log p(x_i\mid z_T,\theta)dz_T}-\\
+    -\int {q_T(z_T\mid x_i,\phi)\frac{\log q_T(z_T\mid x_i,\phi)}{\log p(z_T)}dz_T}=\\
+    =\sum_{i=1}^{n} \int {q_0(z_0\mid x_i,\phi)\log p(x_i\mid f_T(\dots f_1(z_0)\dots)dz_0}-\\
+    -\int {q_0(z_0\mid x_i,\phi)\log\frac{q_0(z_0\mid x_i,\phi)}{p(f_T(f_{T-1}(\dots f_1(z_0)\dots)}dz_0}+\\
+    +\sum_{t=1}^{T} {\int {q_0(z_0\mid x_i,\phi)\log\Bigg|\frac{\partial f_t}{\partial z_{t-1}}\Bigg|}dz_0} \rightarrow\max_{\theta,\phi,f}
+\end{gather*}
+
+\hrule
+
+\begin{gather*}
+    f_t(z_{t-1})=z_{t-1}+u_t\sigma(w_t^Tz_{t-1}+b_t)\\
+    \Bigg| \frac{\partial f}{\partial z_{t-1}}\Bigg| =\Bigg|I+\sigma'(w_t^Tz_{t-1}+b_t)u_t\omega_t^T\Bigg|=\\
+    =\Bigg|1+\sigma'(w_t^Tz_{t-1}+b_t)\omega_t^Tu_t\Bigg|
+\end{gather*}
+\end{document}
