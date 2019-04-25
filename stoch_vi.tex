@@ -1,0 +1,121 @@
+\documentclass{book}
+\usepackage[paperwidth=14cm, paperheight=21cm, margin=1cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{pgfplots,mathtools}
+\usepackage[makeroom]{cancel}
+\begin{document}
+\begin{gather*}
+   p(x|\theta)\\
+   \mathbb{E}_{p(x\mid \theta)} \underbrace{\frac{\partial \log p(x\mid \theta)}{\partial \theta}}_\textrm{score function}=\int {p(x\mid \theta) \frac{\partial \log p(x\mid \theta)}{\partial \theta}dx}=\\
+   =\int {p(x\mid \theta)\frac{1}{p(x\mid \theta)}\frac{\partial p(x\mid \theta)}{\partial \theta}dx}=\frac{\partial }{\partial \theta}\int {p(x\mid \theta)dx}=0\\
+   \frac{\partial ^2 \log p(x\mid \theta)}{\partial \theta}=\frac{\partial }{\partial \theta}\frac{\partial }{\partial \theta}\log p(x\mid \theta)=\\
+   =\frac{\partial }{\partial \theta}\frac{1}{p(x\mid \theta)}\frac{\partial p(x\mid \theta)}{\partial \theta}=
+   -\frac{1}{p(x\mid \theta)^2}\left(\frac{\partial p(x\mid \theta)}{\partial \theta}\right)^2+\frac{1}{p(x\mid \theta)}\frac{\partial ^2}{\partial \theta^2}\log p=\\
+   =-\left(\frac{\partial \log p(x\mid \theta)}{\partial \theta}\right)^2+\underbrace{\frac{1}{p(x\mid \theta)}\frac{\partial ^2}{\partial \theta^2}\log p(x\mid \theta)}_{\mathbb{E}_p=0}
+\end{gather*}
+\begin{gather*}
+  \mathbb{E}\frac{\partial ^2\log p(x\mid \theta)}{\partial \theta^2}=-\mathbb{E}\left(\frac{\partial \log p(x\mid \theta)}{\partial \theta}\right)^2=-F(\theta)\\
+  p(x\mid \theta) = \frac{f(x)}{g(\theta)}\exp (\theta^Tu(x))\\
+  \frac{\partial ^2\log p(x\mid \theta)}{\partial \theta^2}=\frac{\partial ^2}{\partial \theta^2}(\log f(x)+\theta^Tu(x)-\log g(\theta))=\\
+  =-\frac{\partial ^2\log g(\theta)}{\partial \theta^2}=-F(\theta)
+\end{gather*}
+\begin{gather*}
+    \mathrm{grad}f(x) \propto \arg\max_{\Delta x} f(x+\Delta x)~\mathrm{sbj.}~\|\Delta x\|_E < \varepsilon
+\end{gather*}
+
+\hrule
+
+\begin{gather*}
+    p(x,z,\theta)=p(x,z\mid \theta)p(\theta)=\\
+    =\underbrace{p(x\mid z,\theta)}\underbrace{p(z\mid \theta)p(\theta)}_{}
+\end{gather*}
+
+\begin{gather*}
+    p(x,z,\theta)=\prod_{i=1}^{n} {p(x_i,z_i\mid \theta)p(\theta)}
+\end{gather*}
+
+\begin{gather*}
+    x=(x_1,\dots,x_n)\\
+    p(z,\theta\mid x)
+\end{gather*}
+
+\begin{itemize}
+    \item сопр. на $\theta$ при изв. $z_i$ \\
+    \item сопр. на $z$ при изв. $\theta$ \\
+\end{itemize}
+
+\begin{gather*}
+    p(z,\theta\mid x)\approx q(\theta)q(z)=\arg\min_q \mathrm{KL}(q(\theta)q(z)\|p(\theta,z\mid x))
+\end{gather*}
+
+\begin{gather*}
+    \mathrm{let}~p(x,z\mid \theta)=f(\theta)p(x,z)\exp(\theta^Th(x,z))\\
+    p(\theta)=(f(\theta))^{\nu_0}\exp(\theta^T \eta_0)/g(\nu_0,\eta_0)
+\end{gather*}
+
+\begin{gather*}
+    \log q(z)=\mathbb{E}_{q(\theta)}\log p(x,z,\theta)+\mathrm{const}=\\
+    =\mathbb{E}_{q(\theta)}\left(\sum_{i=1}^{} {\log f(\theta)+\log p(x_i,z_i)+\theta^Th(x_0,z_i)+\nu_0\log f(\theta)+\theta^T\eta_0}\right)+\mathrm{const}=\\
+    =\sum_{}^{} {\log p(x_i,z_i)+\mathbb{E}\theta^T\log p(x_i,z_i)}+\mathrm{const}=\sum_{}^{} {q_i(z)}
+\end{gather*}
+
+\begin{gather*}
+    \log q(\theta)=\mathbb{E}_{q(z)}\log p(x,z,\theta)+\mathrm{const}=\\
+    =\mathbb{E}_{q(z)}\left(\sum_{}^{} {\log f(\theta)+\log p(x_i,z_i)+\theta^Th(x_i,z_i)+\nu_0\log f(\theta)+\theta^T\eta_0}\right)+\mathrm{const}=\\
+    =n\log f(\theta)+\theta^T \sum_{i}^{} {\mathbb{E}h(x_i,z_i)}+\nu_0\log f(\theta)+\theta^T\eta_0+\mathrm{const}=\\
+    =(n+\nu_0)\log f(\theta)+\theta^T\left(\eta_0+\sum_{i=1}^{n} {\mathbb{E}h(x_i,z_i)}\right)+\mathrm{const}
+\end{gather*}
+
+\begin{gather*}
+  \nu=\nu_0+n\\
+  \eta=\eta_0+\sum_{i}^{} {\mathbb{E}h(x_i,z_i)}
+\end{gather*}
+
+\begin{gather*}
+    x=(x_1,\dots,x_n)\\
+    x >> 1 \Rightarrow \textrm{stop bayes, use ml}
+\end{gather*}
+
+\begin{gather*}
+  n>>1, d>>1 \Rightarrow \textrm{still bayes, ok}
+\end{gather*}
+
+SVI to the battle!
+
+\begin{gather*}
+    \mathcal{L}(\eta)=\int {q(\theta\mid \eta)q(z)(\log p(x,z\mid \theta)+\log p(\theta)-\log q(\theta\mid \eta)-\cancelto{\mathrm{const}}{\log q(z)})d\theta dz}=\\
+    =\int {q(\theta\mid \eta)q(z)[[\sum_{i=1}^{n} \cancel{f(\theta)}+\cancelto{\mathrm{const}}{\log p(x_i,z_i)}+\theta^Th(x_i,z_i)]}+\\
+    \cancel{\nu_0\log f(\theta)}+\theta^T\eta_0-\cancelto{\mathrm{const}}{\log g(\nu_0,\eta_0}-\cancel{(\nu_0+n)\log f(\theta)}-\\
+    -\theta^Tn+\log g(\nu_0+n,\eta)]dzd\theta=\\
+    =\int {q(\theta\mid \eta)[\theta^T(\eta_0-\eta+\sum_{i=1}^{} {\mathbb{E}_zh(x_i,z_i))]}d\theta}+\log g(\nu_0+n,\eta)+\mathrm{const}=\\
+    =\underbrace{(\mathbb{E}_{\theta\mid \eta}\theta)}_{=\frac{\partial }{\partial \eta}\log g(\nu_0+n,\eta)}[\theta^T(\eta_0-\eta+\sum_{i=1}^{} {\mathbb{E}_zh(x_i,z_i)})]+\log g(\nu_0+n,\eta)
+\end{gather*}
+
+\hrule
+
+\begin{gather*}
+    \frac{\partial }{\partial \eta}=\cancel{\frac{\partial }{\partial \eta}\log g(\nu_0+n,\eta)}+(\eta_0-\eta+\sum_{i=1}^{n} {\mathbb{E}\log p(x_i,z_i)})\cdot\\
+    \cdot \underbrace{\frac{\partial ^2}{\partial \eta^2}\log g(\nu_0+n,\eta)}_{F(\eta)}-\cancel{\frac{\partial }{\partial \eta}\log g(\nu_0+n,\eta)}=\frac{\partial \mathcal{L}}{\partial \eta}\\
+    \mathrm{nat~grad}\mathcal{L}=\cancel{F^{-1}}\cancel{F}(\eta_0-\eta+\sum_{i=1}^{n} {\mathbb{E}_zh(x_i,z_i)})\approx\\
+    \approx \eta_0-\eta+n\mathbb{E}_{z_j}h(x_j,z_j)
+\end{gather*}
+
+\begin{itemize}
+    \item $j \sim U\{1,\dots,n\}$
+    \item  $q_j(z_j)$
+    \item $\eta_{t+1}=\eta_t+\varkappa_t\left(\eta_0-\eta+n\mathbb{E}_{z_j}h(x_j,z_j)\right)$
+\end{itemize}
+
+стох. вар. вывод // Блей, 2011 @ LDA
+
+
+
+
+
+
+
+
+\end{document}
